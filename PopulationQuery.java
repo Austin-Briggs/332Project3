@@ -70,6 +70,7 @@ public class PopulationQuery {
 		String version = args[3];
 		if (version.equals("-v1")) { 		//version 1, simple and sequential
 			CensusData cData = parse(filename);
+			//test Egit SW; IGNORE THIS LINE
 		
 			
 		} else if (version.equals("-v2")) { //version 2, simple and parallel
