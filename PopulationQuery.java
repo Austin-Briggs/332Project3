@@ -58,5 +58,31 @@ public class PopulationQuery {
 	// argument 4: -v1, -v2, -v3, -v4, or -v5
 	public static void main(String[] args) {
 		// FOR YOU
+		if(args.length != 4) {
+			System.err.println("Usage: [filename] [num x-dimension buckets]" +
+							   " [num y-dimension buckets] [-v#]");
+			System.exit(1);
+		}
+		
+		String filename = args[0];
+		int x = Integer.parseInt(args[1]);
+		int y = Integer.parseInt(args[2]);
+		String version = args[3];
+		if (version.equals("-v1")) { 		//version 1, simple and sequential
+			CensusData cData = parse(filename);
+		
+			
+		} else if (version.equals("-v2")) { //version 2, simple and parallel
+			
+		} else if (version.equals("-v3")) { //version 3, smarter and sequential
+			
+		} else if (version.equals("-v4")) { //version 4, smarter and parallel
+			
+		} else if (version.equals("-v5")) { //version 5, smarter and lock-based
+			
+		} else { //incorrect input
+			System.err.println("Incorrect version format. Must use -v1, -v2, -v3, -v4, or -v5.");
+			System.exit(1);
+		}
 	}
 }
