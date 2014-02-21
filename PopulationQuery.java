@@ -2,6 +2,7 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Scanner;
 
 public class PopulationQuery {
 	// next four constants are relevant to parsing
@@ -70,8 +71,34 @@ public class PopulationQuery {
 		String version = args[3];
 		if (version.equals("-v1")) { 		//version 1, simple and sequential
 			CensusData cData = parse(filename);
-			//test Egit SW; IGNORE THIS LINE
-		
+			CensusGroup[] data = cData.data;
+			
+			//Get the minimum and maximum latitudes and longitudes
+			float minLon = data[0].longitude;
+			float minLat = data[0].latitude;
+			float maxLon = data[0].longitude;
+			float maxLat = data[0].latitude;
+			for (int i = 1; i < data.length; i++) {
+				if (data[0].latitude < minLat) minLat = data[0].latitude;
+				if (data[0].longitude < minLon) minLon = data[0].longitude;
+				if (data[0].latitude > maxLat) maxLat = data[0].latitude;
+				if (data[0].longitude > maxLon) maxLon = data[0].longitude;
+			}
+			
+			Scanner console = new Scanner(System.in);
+			System.out.println("Request a query? (y/n)");
+			while (console.hasNext() && console.nextLine().equalsIgnoreCase("y")) {
+				//Get the line for the query rectangle numbers 
+				System.out.println("Enter the data for your query request [west east north south]; "
+								 + "west and east between 1-"+x+" and north and south between 1-"+y);
+				String line = console.nextLine();
+				//Process the line to get the query rectangle numbers
+				
+				//Validate the query inputs
+				/*if (west < 1 || west > x) {
+					throw new IllegalInputException();
+				}*/
+			}
 			
 		} else if (version.equals("-v2")) { //version 2, simple and parallel
 			
