@@ -78,27 +78,86 @@ public class PopulationQuery {
 			float minLat = data[0].latitude;
 			float maxLon = data[0].longitude;
 			float maxLat = data[0].latitude;
-			for (int i = 1; i < data.length; i++) {
-				if (data[0].latitude < minLat) minLat = data[0].latitude;
-				if (data[0].longitude < minLon) minLon = data[0].longitude;
-				if (data[0].latitude > maxLat) maxLat = data[0].latitude;
-				if (data[0].longitude > maxLon) maxLon = data[0].longitude;
+			int totalUSPop = data[0].population;
+
+			for (int i = 1; i < cData.data_size; i++) {
+				if (data[i].latitude < minLat) minLat = data[i].latitude;
+				if (data[i].longitude < minLon) minLon = data[i].longitude;
+				if (data[i].latitude > maxLat) maxLat = data[i].latitude;
+				if (data[i].longitude > maxLon) maxLon = data[i].longitude;
+				
+				//Also add to the total US population
+				totalUSPop += data[i].population;
 			}
-			
+						
 			Scanner console = new Scanner(System.in);
-			System.out.println("Request a query? (y/n)");
+			System.out.print("Request a query? (y/n) ");
 			while (console.hasNext() && console.nextLine().equalsIgnoreCase("y")) {
 				//Get the line for the query rectangle numbers 
-				System.out.println("Enter the data for your query request [west east north south]; "
-								 + "west and east between 1-"+x+" and north and south between 1-"+y);
-				String line = console.nextLine();
-				//Process the line to get the query rectangle numbers
+				System.out.print("Enter the row and column data for your subrectangle request [west south east north]: ");
+				String[] usRectLine = console.nextLine().split(" ");
+				if (usRectLine.length != 4) {
+					System.err.println("Incorrect number of arguments.");
+				} else {
+					//Process the line to get the query rectangle numbers
+					int west, east, south, north = 0;
+					try {
+						west = Integer.parseInt(usRectLine[0]);
+						south = Integer.parseInt(usRectLine[1]);
+						east = Integer.parseInt(usRectLine[2]);
+						north = Integer.parseInt(usRectLine[3]);
+					} catch (NumberFormatException e) {
+						System.out.println("ERROR: You must input valid numbers.");
+						System.out.print("Request another query? (y/n) ");
+						continue;
+					}
+					
+					//Validate the query inputs
+					try {
+						if (west < 1 || west > x) 		throw new IllegalArgumentException("ERROR: west cannot be less than 1 or greater than "+x+".");
+						if (south < 1 || south > y)		throw new IllegalArgumentException("ERROR: south cannot be less than 1 or greater than "+y+".");
+						if (east < west || east > x) 	throw new IllegalArgumentException("ERROR: east cannot be less than west or greater than "+x+".");
+						if (north < south || north > y) throw new IllegalArgumentException("ERROR: north cannot be less than south or greater than "+y+".");
+					} catch (IllegalArgumentException e) {
+						System.out.println(e.getMessage());
+						System.out.print("Request another query? (y/n) ");
+						continue;
+					}
 				
-				//Validate the query inputs
-				/*if (west < 1 || west > x) {
-					throw new IllegalInputException();
-				}*/
+					//Create the query Rectangle
+					float dLong = (maxLon - minLon) / x;
+					float dLat 	= (maxLat - minLat) / y;
+					Rectangle qRect = new Rectangle(minLon + dLong * (west - 1),
+													minLon + dLong * east,
+													minLat + dLat * north,
+													minLat + dLat * (south - 1));
+					
+					//Find the total population within the query rectangle and the % of totalUSPop it is
+					int queryPop = 0;
+					for (int i = 0; i < cData.data_size; i++) {
+						CensusGroup cg = cData.data[i];
+						float lat = cg.latitude;
+						float lon = cg.longitude;
+						
+						//If the current CensusGroup is bounded by the query rectangle, 
+						//add its population to queryPop
+						if (lat >= qRect.bottom && lat <= qRect.top && lon >= qRect.left && lon <= qRect.right) {
+							queryPop += cg.population;
+						}
+					}
+					float percentTotalPop = ((float) queryPop * 100) / totalUSPop;
+					
+					//Print the results
+					System.out.println("QUERY RESULTS:");
+					System.out.println("Query population = "+queryPop);
+					System.out.print("Percent of US population = ");
+					System.out.printf("%.2f", percentTotalPop);
+					System.out.println("%");
+				}
+				
+				System.out.print("Request another query? (y/n) ");
 			}
+			console.close();
 			
 		} else if (version.equals("-v2")) { //version 2, simple and parallel
 			
