@@ -3,6 +3,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Scanner;
+import java.util.concurrent.ForkJoinPool;
 
 public class PopulationQuery {
 	// next four constants are relevant to parsing
@@ -89,7 +90,7 @@ public class PopulationQuery {
 				//Also add to the total US population
 				totalUSPop += data[i].population;
 			}
-						
+			
 			Scanner console = new Scanner(System.in);
 			System.out.print("Request a query? (y/n) ");
 			while (console.hasNext() && console.nextLine().equalsIgnoreCase("y")) {
@@ -160,7 +161,70 @@ public class PopulationQuery {
 			console.close();
 			
 		} else if (version.equals("-v2")) { //version 2, simple and parallel
+			CensusData cData = parse(filename);
+			CensusGroup[] data = cData.data;
 			
+			//Makes the United States Rectangle
+			ForkJoinPool fjPool = new ForkJoinPool();
+			ParallelSquare ps = new ParallelSquare(data,0,cData.data_size);
+			Rectangle usRectangle = fjPool.invoke(ps);
+		
+			Scanner console = new Scanner(System.in);
+			System.out.print("Request a query? (y/n) ");
+			while (console.hasNext() && console.nextLine().equalsIgnoreCase("y")) {
+				//Get the line for the query rectangle numbers 
+				System.out.print("Enter the row and column data for your subrectangle request [west south east north]: ");
+				String[] usRectLine = console.nextLine().split(" ");
+				if (usRectLine.length != 4) {
+					System.err.println("Incorrect number of arguments.");
+				} else {
+					//Process the line to get the query rectangle numbers
+					int west, east, south, north = 0;
+					try {
+						west = Integer.parseInt(usRectLine[0]);
+						south = Integer.parseInt(usRectLine[1]);
+						east = Integer.parseInt(usRectLine[2]);
+						north = Integer.parseInt(usRectLine[3]);
+					} catch (NumberFormatException e) {
+						System.out.println("ERROR: You must input valid numbers.");
+						System.out.print("Request another query? (y/n) ");
+						continue;
+					}
+					
+					//Validate the query inputs
+					try {
+						if (west < 1 || west > x) 		throw new IllegalArgumentException("ERROR: west cannot be less than 1 or greater than "+x+".");
+						if (south < 1 || south > y)		throw new IllegalArgumentException("ERROR: south cannot be less than 1 or greater than "+y+".");
+						if (east < west || east > x) 	throw new IllegalArgumentException("ERROR: east cannot be less than west or greater than "+x+".");
+						if (north < south || north > y) throw new IllegalArgumentException("ERROR: north cannot be less than south or greater than "+y+".");
+					} catch (IllegalArgumentException e) {
+						System.out.println(e.getMessage());
+						System.out.print("Request another query? (y/n) ");
+						continue;
+					}
+					
+					float dLong = (usRectangle.right - usRectangle.left) / x;
+					float dLat 	= (usRectangle.top - usRectangle.bottom) / y;
+					Rectangle qRect = new Rectangle(usRectangle.left + dLong * (west - 1),
+													usRectangle.left + dLong * east,
+													usRectangle.bottom + dLat * north,
+													usRectangle.bottom + dLat * (south - 1));
+					SimpleQuery sq = new SimpleQuery(data, 0, cData.data_size,qRect);
+					Pair<Integer,Integer> qp = fjPool.invoke(sq);
+					Integer queryPop = qp.getElementA();
+					Integer totalUSPop = qp.getElementB();
+					float percentTotalPop = ((float) queryPop * 100) / totalUSPop;
+					
+					//Print the results
+					System.out.println("QUERY RESULTS:");
+					System.out.println("Query population = "+queryPop);
+					System.out.print("Percent of US population = ");
+					System.out.printf("%.2f", percentTotalPop);
+					System.out.println("%");
+				}
+				System.out.print("Request another query? (y/n) ");
+			}
+		console.close();
 		} else if (version.equals("-v3")) { //version 3, smarter and sequential
 			
 		} else if (version.equals("-v4")) { //version 4, smarter and parallel
