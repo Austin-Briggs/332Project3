@@ -285,11 +285,27 @@ public class PopulationQuery {
 		int[][] grid = new int[x][y];
 		
 		//Populate the grid
-		for (int i = 0; i < data.length; i++) {
-			int xPos = 0; 
-			int yPos = 0;
-			//(N - minLon) / dLong
-			//(E - minLat) / dLat
+		for (int i = 0; i < cData.data_size; i++) {
+			float lon = data[i].longitude;
+			float lat = data[i].latitude;
+			
+			//if the latitude or longitude lies on the northernmost or easternmost border set the
+			//xPos and/or yPos to be the easternmost and/or northernmost rectangle
+			int xPos = (lon == maxLon) ? x - 1 : (int) ((lon - minLon) / dLong); 
+			int yPos = (lat == maxLat) ? y - 1 : (int) ((lat - minLat) / dLat); 
+			//another check on xPos and yPos to make sure they're not on the border
+			if (xPos == x) xPos--;
+			if (yPos == y) yPos--;
+			System.out.println(i + ": ("+xPos+", "+yPos+"). lat="+lat+"; maxLat="+maxLat+"; minLat="+minLat+"; dLat="+dLat);
+			
+			grid[xPos][yPos] = data[i].population;
+		}
+		
+		for (int i = 0; i < y; i++) {
+			for (int j = 0; j < x; j++) {
+				System.out.print(grid[j][i] + "\t");
+			}
+			System.out.println();
 		}
 	}
 }
