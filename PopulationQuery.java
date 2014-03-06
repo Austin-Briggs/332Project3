@@ -71,159 +71,11 @@ public class PopulationQuery {
 		int y = Integer.parseInt(args[2]);
 		String version = args[3];
 		if (version.equals("-v1")) { 		//version 1, simple and sequential
-			CensusData cData = parse(filename);
-			CensusGroup[] data = cData.data;
-
-			//Get the minimum and maximum latitudes and longitudes
-			float minLon = data[0].longitude;
-			float minLat = data[0].latitude;
-			float maxLon = data[0].longitude;
-			float maxLat = data[0].latitude;
-			int totalUSPop = data[0].population;
-
-			for (int i = 1; i < cData.data_size; i++) {
-				if (data[i].latitude < minLat) minLat = data[i].latitude;
-				if (data[i].longitude < minLon) minLon = data[i].longitude;
-				if (data[i].latitude > maxLat) maxLat = data[i].latitude;
-				if (data[i].longitude > maxLon) maxLon = data[i].longitude;
-
-				//Also add to the total US population
-				totalUSPop += data[i].population;
-			}
-
-			Scanner console = new Scanner(System.in);
-			//Get the line for the query rectangle numbers 
-			System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
-			String[] usRectLine = console.nextLine().split(" ");
-			while (usRectLine.length == 4) {
-				//Process the line to get the query rectangle numbers
-				int west, east, south, north = 0;
-				try {
-					west = Integer.parseInt(usRectLine[0]);
-					south = Integer.parseInt(usRectLine[1]);
-					east = Integer.parseInt(usRectLine[2]);
-					north = Integer.parseInt(usRectLine[3]);
-				} catch (NumberFormatException e) {
-					System.out.println("ERROR: You must input valid numbers.");
-					System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
-					usRectLine = console.nextLine().split(" ");
-					continue;
-				}
-
-				//Validate the query inputs
-				try {
-					if (west < 1 || west > x) 		throw new IllegalArgumentException("ERROR: west cannot be less than 1 or greater than "+x+".");
-					if (south < 1 || south > y)		throw new IllegalArgumentException("ERROR: south cannot be less than 1 or greater than "+y+".");
-					if (east < west || east > x) 	throw new IllegalArgumentException("ERROR: east cannot be less than west or greater than "+x+".");
-					if (north < south || north > y) throw new IllegalArgumentException("ERROR: north cannot be less than south or greater than "+y+".");
-				} catch (IllegalArgumentException e) {
-					System.out.println(e.getMessage());
-					System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
-					usRectLine = console.nextLine().split(" ");
-					continue;
-				}
-
-				//Create the query Rectangle
-				float dLong = (maxLon - minLon) / x;
-				float dLat 	= (maxLat - minLat) / y;
-				Rectangle qRect = new Rectangle(minLon + dLong * (west - 1),
-						minLon + dLong * east,
-						minLat + dLat * north,
-						minLat + dLat * (south - 1));
-
-				//Find the total population within the query rectangle and the % of totalUSPop it is
-				int queryPop = 0;
-				for (int i = 0; i < cData.data_size; i++) {
-					CensusGroup cg = cData.data[i];
-					float lat = cg.latitude;
-					float lon = cg.longitude;
-
-					//If the current CensusGroup is bounded by the query rectangle, 
-					//add its population to queryPop
-					if (lat >= qRect.bottom && lat <= qRect.top && lon >= qRect.left && lon <= qRect.right) {
-						queryPop += cg.population;
-					}
-				}
-				float percentTotalPop = ((float) queryPop * 100) / totalUSPop;
-
-				//Print the results
-				System.out.println("population of rectangle: "+queryPop);
-				System.out.print("percent of total population: ");
-				System.out.printf("%.2f", percentTotalPop);
-				System.out.println();
-
-				//Prompt again
-				System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
-				usRectLine = console.nextLine().split(" ");				
-			}
-			console.close();
-
+			executeVersionOne(x, y, filename);
 		} else if (version.equals("-v2")) { //version 2, simple and parallel
-			CensusData cData = parse(filename);
-			CensusGroup[] data = cData.data;
-
-			//Makes the United States Rectangle
-			ForkJoinPool fjPool = new ForkJoinPool();
-			ParallelSquare ps = new ParallelSquare(data,0,cData.data_size);
-			Rectangle usRectangle = fjPool.invoke(ps);
-
-			Scanner console = new Scanner(System.in);
-			//Get the line for the query rectangle numbers 
-			System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
-			String[] usRectLine = console.nextLine().split(" ");
-			while (usRectLine.length == 4) {
-				//Process the line to get the query rectangle numbers
-				int west, east, south, north = 0;
-				try {
-					west = Integer.parseInt(usRectLine[0]);
-					south = Integer.parseInt(usRectLine[1]);
-					east = Integer.parseInt(usRectLine[2]);
-					north = Integer.parseInt(usRectLine[3]);
-				} catch (NumberFormatException e) {
-					System.out.println("ERROR: You must input valid numbers.");
-					System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
-					usRectLine = console.nextLine().split(" ");
-					continue;
-				}
-
-				//Validate the query inputs
-				try {
-					if (west < 1 || west > x) 		throw new IllegalArgumentException("ERROR: west cannot be less than 1 or greater than "+x+".");
-					if (south < 1 || south > y)		throw new IllegalArgumentException("ERROR: south cannot be less than 1 or greater than "+y+".");
-					if (east < west || east > x) 	throw new IllegalArgumentException("ERROR: east cannot be less than west or greater than "+x+".");
-					if (north < south || north > y) throw new IllegalArgumentException("ERROR: north cannot be less than south or greater than "+y+".");
-				} catch (IllegalArgumentException e) {
-					System.out.println(e.getMessage());
-					System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
-					usRectLine = console.nextLine().split(" ");
-					continue;
-				}
-
-				float dLong = (usRectangle.right - usRectangle.left) / x;
-				float dLat 	= (usRectangle.top - usRectangle.bottom) / y;
-				Rectangle qRect = new Rectangle(usRectangle.left + dLong * (west - 1),
-						usRectangle.left + dLong * east,
-						usRectangle.bottom + dLat * north,
-						usRectangle.bottom + dLat * (south - 1));
-				SimpleQuery sq = new SimpleQuery(data, 0, cData.data_size,qRect);
-				Pair<Integer,Integer> qp = fjPool.invoke(sq);
-				Integer queryPop = qp.getElementA();
-				Integer totalUSPop = qp.getElementB();
-				float percentTotalPop = ((float) queryPop * 100) / totalUSPop;
-
-				//Print the results
-				System.out.println("population of rectangle: "+queryPop);
-				System.out.print("percent of total population: ");
-				System.out.printf("%.2f", percentTotalPop);
-				System.out.println();
-				
-				//Prompt again
-				System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
-				usRectLine = console.nextLine().split(" ");
-			}
-			console.close();
+			executeVersionTwo(x, y, filename);
 		} else if (version.equals("-v3")) { //version 3, smarter and sequential
-
+			executeVersionThree(x, y, filename);
 		} else if (version.equals("-v4")) { //version 4, smarter and parallel
 
 		} else if (version.equals("-v5")) { //version 5, smarter and lock-based
@@ -231,6 +83,213 @@ public class PopulationQuery {
 		} else { //incorrect input
 			System.err.println("Incorrect version format. Must use -v1, -v2, -v3, -v4, or -v5.");
 			System.exit(1);
+		}
+	}
+
+	//version 1, simple and sequential
+	//x = x dimension of the grid
+	//y = y dimension of the grid
+	//filename = name of the file to parse data from
+	private static void executeVersionOne(int x, int y, String filename) {
+
+		CensusData cData = parse(filename);
+		CensusGroup[] data = cData.data;
+
+		//Get the minimum and maximum latitudes and longitudes
+		float minLon = data[0].longitude;
+		float minLat = data[0].latitude;
+		float maxLon = data[0].longitude;
+		float maxLat = data[0].latitude;
+		int totalUSPop = data[0].population;
+
+		for (int i = 1; i < cData.data_size; i++) {
+			if (data[i].latitude < minLat) minLat = data[i].latitude;
+			if (data[i].longitude < minLon) minLon = data[i].longitude;
+			if (data[i].latitude > maxLat) maxLat = data[i].latitude;
+			if (data[i].longitude > maxLon) maxLon = data[i].longitude;
+
+			//Also add to the total US population
+			totalUSPop += data[i].population;
+		}
+
+		Scanner console = new Scanner(System.in);
+		//Get the line for the query rectangle numbers 
+		System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
+		String[] usRectLine = console.nextLine().split(" ");
+		while (usRectLine.length == 4) {
+			//Process the line to get the query rectangle numbers
+			int west, east, south, north = 0;
+			try {
+				west = Integer.parseInt(usRectLine[0]);
+				south = Integer.parseInt(usRectLine[1]);
+				east = Integer.parseInt(usRectLine[2]);
+				north = Integer.parseInt(usRectLine[3]);
+			} catch (NumberFormatException e) {
+				System.out.println("ERROR: You must input valid numbers.");
+				System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
+				usRectLine = console.nextLine().split(" ");
+				continue;
+			}
+
+			//Validate the query inputs
+			try {
+				if (west < 1 || west > x) 		throw new IllegalArgumentException("ERROR: west cannot be less than 1 or greater than "+x+".");
+				if (south < 1 || south > y)		throw new IllegalArgumentException("ERROR: south cannot be less than 1 or greater than "+y+".");
+				if (east < west || east > x) 	throw new IllegalArgumentException("ERROR: east cannot be less than west or greater than "+x+".");
+				if (north < south || north > y) throw new IllegalArgumentException("ERROR: north cannot be less than south or greater than "+y+".");
+			} catch (IllegalArgumentException e) {
+				System.out.println(e.getMessage());
+				System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
+				usRectLine = console.nextLine().split(" ");
+				continue;
+			}
+
+			//Create the query Rectangle
+			float dLong = (maxLon - minLon) / x;
+			float dLat 	= (maxLat - minLat) / y;
+			Rectangle qRect = new Rectangle(minLon + dLong * (west - 1),
+					minLon + dLong * east,
+					minLat + dLat * north,
+					minLat + dLat * (south - 1));
+
+			//Find the total population within the query rectangle and the % of totalUSPop it is
+			int queryPop = 0;
+			for (int i = 0; i < cData.data_size; i++) {
+				CensusGroup cg = cData.data[i];
+				float lat = cg.latitude;
+				float lon = cg.longitude;
+
+				//If the current CensusGroup is bounded by the query rectangle, 
+				//add its population to queryPop
+				if (lat >= qRect.bottom && lat <= qRect.top && lon >= qRect.left && lon <= qRect.right) {
+					queryPop += cg.population;
+				}
+			}
+			float percentTotalPop = ((float) queryPop * 100) / totalUSPop;
+
+			//Print the results
+			System.out.println("population of rectangle: "+queryPop);
+			System.out.print("percent of total population: ");
+			System.out.printf("%.2f", percentTotalPop);
+			System.out.println();
+
+			//Prompt again
+			System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
+			usRectLine = console.nextLine().split(" ");				
+		}
+		console.close();
+		
+	}
+
+	//version 2, simple and parallel
+	//x = x dimension of the grid
+	//y = y dimension of the grid
+	//filename = name of the file to parse data from
+	private static void executeVersionTwo(int x, int y, String filename) {
+		CensusData cData = parse(filename);
+		CensusGroup[] data = cData.data;
+
+		//Makes the United States Rectangle
+		ForkJoinPool fjPool = new ForkJoinPool();
+		ParallelSquare ps = new ParallelSquare(data,0,cData.data_size);
+		Rectangle usRectangle = fjPool.invoke(ps);
+
+		Scanner console = new Scanner(System.in);
+		//Get the line for the query rectangle numbers 
+		System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
+		String[] usRectLine = console.nextLine().split(" ");
+		while (usRectLine.length == 4) {
+			//Process the line to get the query rectangle numbers
+			int west, east, south, north = 0;
+			try {
+				west = Integer.parseInt(usRectLine[0]);
+				south = Integer.parseInt(usRectLine[1]);
+				east = Integer.parseInt(usRectLine[2]);
+				north = Integer.parseInt(usRectLine[3]);
+			} catch (NumberFormatException e) {
+				System.out.println("ERROR: You must input valid numbers.");
+				System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
+				usRectLine = console.nextLine().split(" ");
+				continue;
+			}
+
+			//Validate the query inputs
+			try {
+				if (west < 1 || west > x) 		throw new IllegalArgumentException("ERROR: west cannot be less than 1 or greater than "+x+".");
+				if (south < 1 || south > y)		throw new IllegalArgumentException("ERROR: south cannot be less than 1 or greater than "+y+".");
+				if (east < west || east > x) 	throw new IllegalArgumentException("ERROR: east cannot be less than west or greater than "+x+".");
+				if (north < south || north > y) throw new IllegalArgumentException("ERROR: north cannot be less than south or greater than "+y+".");
+			} catch (IllegalArgumentException e) {
+				System.out.println(e.getMessage());
+				System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
+				usRectLine = console.nextLine().split(" ");
+				continue;
+			}
+
+			float dLong = (usRectangle.right - usRectangle.left) / x;
+			float dLat 	= (usRectangle.top - usRectangle.bottom) / y;
+			Rectangle qRect = new Rectangle(usRectangle.left + dLong * (west - 1),
+					usRectangle.left + dLong * east,
+					usRectangle.bottom + dLat * north,
+					usRectangle.bottom + dLat * (south - 1));
+			SimpleQuery sq = new SimpleQuery(data, 0, cData.data_size,qRect);
+			Pair<Integer,Integer> qp = fjPool.invoke(sq);
+			Integer queryPop = qp.getElementA();
+			Integer totalUSPop = qp.getElementB();
+			float percentTotalPop = ((float) queryPop * 100) / totalUSPop;
+
+			//Print the results
+			System.out.println("population of rectangle: "+queryPop);
+			System.out.print("percent of total population: ");
+			System.out.printf("%.2f", percentTotalPop);
+			System.out.println();
+			
+			//Prompt again
+			System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
+			usRectLine = console.nextLine().split(" ");
+		}
+		console.close();
+	}
+
+	//version 3, smarter and sequential
+	//x = x dimension of the grid
+	//y = y dimension of the grid
+	//filename = name of the file to parse data from
+	private static void executeVersionThree(int x, int y, String filename) {
+		//Parse data
+		CensusData cData = parse(filename);
+		CensusGroup[] data = cData.data;
+		
+		//Get the minimum and maximum latitudes and longitudes as above
+		float minLon = data[0].longitude;
+		float minLat = data[0].latitude;
+		float maxLon = data[0].longitude;
+		float maxLat = data[0].latitude;
+		int totalUSPop = data[0].population;
+
+		for (int i = 1; i < cData.data_size; i++) {
+			if (data[i].latitude < minLat) minLat = data[i].latitude;
+			if (data[i].longitude < minLon) minLon = data[i].longitude;
+			if (data[i].latitude > maxLat) maxLat = data[i].latitude;
+			if (data[i].longitude > maxLon) maxLon = data[i].longitude;
+
+			//Also add to the total US population
+			totalUSPop += data[i].population;
+		}
+
+		//Calculate the dLong and dLat between each x and y grid position
+		float dLong = (maxLon - minLon) / x;
+		float dLat 	= (maxLat - minLat) / y;
+		
+		//Create x*y grid where each element is the total population of the (xi, yi) grid position
+		int[][] grid = new int[x][y];
+		
+		//Populate the grid
+		for (int i = 0; i < data.length; i++) {
+			int xPos = 0; 
+			int yPos = 0;
+			//(N - minLon) / dLong
+			//(E - minLat) / dLat
 		}
 	}
 }
