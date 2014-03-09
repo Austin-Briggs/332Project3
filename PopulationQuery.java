@@ -111,7 +111,7 @@ public class PopulationQuery {
 			//Also add to the total US population
 			totalUSPop += data[i].population;
 		}
-
+		
 		Scanner console = new Scanner(System.in);
 		//Get the line for the query rectangle numbers 
 		System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
@@ -292,20 +292,96 @@ public class PopulationQuery {
 			//if the latitude or longitude lies on the northernmost or easternmost border set the
 			//xPos and/or yPos to be the easternmost and/or northernmost rectangle
 			int xPos = (lon == maxLon) ? x - 1 : (int) ((lon - minLon) / dLong); 
-			int yPos = (lat == maxLat) ? y - 1 : (int) ((lat - minLat) / dLat); 
-			//another check on xPos and yPos to make sure they're not on the border
-			if (xPos == x) xPos--;
-			if (yPos == y) yPos--;
-			System.out.println(i + ": ("+xPos+", "+yPos+"). lat="+lat+"; maxLat="+maxLat+"; minLat="+minLat+"; dLat="+dLat);
+			int yPos = (lat == maxLat) ? y - 1 : (int) ((lat - minLat) / dLat);
 			
-			grid[xPos][yPos] = data[i].population;
+			grid[xPos][yPos] += data[i].population;
 		}
 		
-		for (int i = 0; i < y; i++) {
+		//Modify grid so that it each element now holds the total for all postitions that are
+		//neither farther East nor farther South.
+		for (int j = y-1; j >= 0; j--) {
+			for (int i = 0; i < x; i++) {
+				//get the populations for the corners (i-1, j), (i, j+1), and (i-1, j+1)
+				int bottomLeft = (i == 0) ? 0 : grid[i-1][j];
+				int topRight   = (j == y - 1) ? 0 : grid[i][j+1]; 
+				int topLeft    = (i == 0 || j == y - 1) ? 0 : grid[i-1][j+1];
+				
+				//modify the population to grid[i][j]+bottomLeft+topRight-topLeft
+				grid[i][j] = grid[i][j] + bottomLeft + topRight - topLeft;
+			}
+		}
+		
+		Scanner console = new Scanner(System.in);
+		//Get the line for the query rectangle numbers 
+		System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
+		String[] usRectLine = console.nextLine().split(" ");
+		while (usRectLine.length == 4) {
+			//Process the line to get the query rectangle numbers
+			int west, east, south, north = 0;
+			try {
+				west = Integer.parseInt(usRectLine[0]);
+				south = Integer.parseInt(usRectLine[1]);
+				east = Integer.parseInt(usRectLine[2]);
+				north = Integer.parseInt(usRectLine[3]);
+			} catch (NumberFormatException e) {
+				System.out.println("ERROR: You must input valid numbers.");
+				System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
+				usRectLine = console.nextLine().split(" ");
+				continue;
+			}
+
+			//Validate the query inputs
+			try {
+				if (west < 1 || west > x) 		throw new IllegalArgumentException("ERROR: west cannot be less than 1 or greater than "+x+".");
+				if (south < 1 || south > y)		throw new IllegalArgumentException("ERROR: south cannot be less than 1 or greater than "+y+".");
+				if (east < west || east > x) 	throw new IllegalArgumentException("ERROR: east cannot be less than west or greater than "+x+".");
+				if (north < south || north > y) throw new IllegalArgumentException("ERROR: north cannot be less than south or greater than "+y+".");
+			} catch (IllegalArgumentException e) {
+				System.out.println(e.getMessage());
+				System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
+				usRectLine = console.nextLine().split(" ");
+				continue;
+			}
+
+			//Create the query Rectangle
+			Rectangle qRect = new Rectangle(minLon + dLong * (west - 1),
+					minLon + dLong * east,
+					minLat + dLat * north,
+					minLat + dLat * (south - 1));
+
+			//Find the total population within the query rectangle. Use a similar formula from before:
+			//bottomRight - aboveTopRight - leftBottomLeft + aboveAndLeftTopLeft
+			int bottomRight = grid[east-1][south-1];
+			int aboveTopRight = (north == y) ? 0 : grid[east-1][north];
+			int leftBottomLeft = (west == 1) ? 0 : grid[west-2][south-1];
+			int aboveAndLeftTopLeft = (north == y || west == 1) ? 0 : grid[west-2][north];
+			int queryPop = bottomRight - aboveTopRight - leftBottomLeft + aboveAndLeftTopLeft;
+
+			//% of totalUSPop query is
+			float percentTotalPop = ((float) queryPop * 100) / totalUSPop;
+
+			//Print the results
+			System.out.println("population of rectangle: "+queryPop);
+			System.out.print("percent of total population: ");
+			System.out.printf("%.2f", percentTotalPop);
+			System.out.println();
+			
+			//Prompt again
+			System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
+			usRectLine = console.nextLine().split(" ");
+		}
+		console.close();
+	}
+	
+	//private helper method used to print the grid
+	private static void printGrid(int x, int y, int[][] grid) {
+		//Test print of grid
+		for (int i = y-1; i >= 0; i--) {
 			for (int j = 0; j < x; j++) {
 				System.out.print(grid[j][i] + "\t");
 			}
 			System.out.println();
 		}
+		System.out.println();
 	}
 }
