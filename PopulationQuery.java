@@ -79,7 +79,7 @@ public class PopulationQuery {
 		} else if (version.equals("-v4")) { //version 4, smarter and parallel
 
 		} else if (version.equals("-v5")) { //version 5, smarter and lock-based
-
+			executeVersionFive(x, y, filename);
 		} else { //incorrect input
 			System.err.println("Incorrect version format. Must use -v1, -v2, -v3, -v4, or -v5.");
 			System.exit(1);
@@ -371,6 +371,29 @@ public class PopulationQuery {
 			usRectLine = console.nextLine().split(" ");
 		}
 		console.close();
+	}
+
+	//version 5, smarter and lock-based
+	//x = x dimension of the grid
+	//y = y dimension of the grid
+	//filename = name of the file to parse data from
+	private static void executeVersionFive(int x, int y, String filename) {
+		//Parse data
+		CensusData cData = parse(filename);
+		CensusGroup[] data = cData.data;
+
+		//Makes the United States Rectangle
+		ForkJoinPool fjPool = new ForkJoinPool();
+		ParallelSquare ps = new ParallelSquare(data,0,cData.data_size);
+		Rectangle usRectangle = fjPool.invoke(ps);
+		
+		//Create x*y grid where each element is the total population of the (xi, yi) grid position
+		int[][] grid = new int[x][y];
+		
+		//Create x*y grid of locks associated with each grid[xi][yi] element.
+		//0 = element in grid is not locked
+		//1 = element in grid is locked
+		Lock[][] locks = new Lock[x][y];
 	}
 	
 	//private helper method used to print the grid

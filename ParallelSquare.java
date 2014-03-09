@@ -8,14 +8,13 @@ public class ParallelSquare extends RecursiveTask<Rectangle>{
 	public static final int SEQUENTIAL_CUTOFF = 100;
 	
 	public ParallelSquare(CensusGroup[] array, int low, int high){
-			this.low = low;
-			this.high = high;
-			this.array = array;
+		this.low = low;
+		this.high = high;
+		this.array = array;
 	}
 	
 	@Override
 	protected Rectangle compute() {
-		// TODO Auto-generated method stub
 		if(high - low <= SEQUENTIAL_CUTOFF){
 			Rectangle val = new Rectangle(array[low].longitude, array[low].longitude, array[low].latitude, array[low].latitude);
 			int elements = high - low;
