@@ -70,15 +70,15 @@ public class PopulationQuery {
 		int y = Integer.parseInt(args[2]);
 		String version = args[3];
 		if (version.equals("-v1")) { 		//version 1, simple and sequential
-			executeVersionOne(x, y, filename);
+			executeSimpleSequential(x, y, filename);
 		} else if (version.equals("-v2")) { //version 2, simple and parallel
-			executeVersionTwo(x, y, filename);
+			executeSimpleParallel(x, y, filename);
 		} else if (version.equals("-v3")) { //version 3, smarter and sequential
-			executeVersionThree(x, y, filename);
+			executeSmarterSequential(x, y, filename);
 		} else if (version.equals("-v4")) { //version 4, smarter and parallel
-			executeVersionFour(x,y,filename);
+			executeSmarterParallel(x,y,filename);
 		} else if (version.equals("-v5")) { //version 5, smarter and lock-based
-			executeVersionFive(x, y, filename);
+			executeSmarterLockBased(x, y, filename);
 		} else { //incorrect input
 			System.err.println("Incorrect version format. Must use -v1, -v2, -v3, -v4, or -v5.");
 			System.exit(1);
@@ -89,7 +89,7 @@ public class PopulationQuery {
 	//x = x dimension of the grid
 	//y = y dimension of the grid
 	//filename = name of the file to parse data from
-	private static void executeVersionOne(int x, int y, String filename) {
+	private static void executeSimpleSequential(int x, int y, String filename) {
 
 		CensusData cData = parse(filename);
 		CensusGroup[] data = cData.data;
@@ -102,8 +102,9 @@ public class PopulationQuery {
 		//	- element 3 = maximum latitude
 		//	- element 4 = total US population (must be recasted to an int)
 		float[] minMaxLatLonTotalPop = sequentialGetMinMaxLatLonTotalPop(data, cData.data_size);
-		float minLon = minMaxLatLonTotalPop[0], minLat = minMaxLatLonTotalPop[1];
-		float maxLon = minMaxLatLonTotalPop[2], maxLat = minMaxLatLonTotalPop[3];
+		
+		//Make a rectangle of the US
+		Rectangle usRectangle = new Rectangle(minMaxLatLonTotalPop[0], minMaxLatLonTotalPop[2], minMaxLatLonTotalPop[3], minMaxLatLonTotalPop[1]);
 		int totalUSPop = (int)minMaxLatLonTotalPop[4];
 		
 		Scanner console = new Scanner(System.in);
@@ -119,15 +120,9 @@ public class PopulationQuery {
 				usRectLine = console.nextLine().split(" ");
 				continue;
 			}
-			int west = wsen[0], south = wsen[1], east = wsen[2], north = wsen[3];
 
 			//Create the query Rectangle
-			float dLong = (maxLon - minLon) / x;
-			float dLat 	= (maxLat - minLat) / y;
-			Rectangle qRect = new Rectangle(minLon + dLong * (west - 1),
-					minLon + dLong * east,
-					minLat + dLat * north,
-					minLat + dLat * (south - 1));
+			Rectangle queryRect = createQueryRect(x, y, wsen, usRectangle);
 
 			//Find the total population within the query rectangle and the % of totalUSPop it is
 			int queryPop = 0;
@@ -138,7 +133,7 @@ public class PopulationQuery {
 
 				//If the current CensusGroup is bounded by the query rectangle, 
 				//add its population to queryPop
-				if (lat >= qRect.bottom && lat <= qRect.top && lon >= qRect.left && lon <= qRect.right) {
+				if (lat >= queryRect.bottom && lat <= queryRect.top && lon >= queryRect.left && lon <= queryRect.right) {
 					queryPop += cg.population;
 				}
 			}
@@ -159,7 +154,7 @@ public class PopulationQuery {
 	//x = x dimension of the grid
 	//y = y dimension of the grid
 	//filename = name of the file to parse data from
-	private static void executeVersionTwo(int x, int y, String filename) {
+	private static void executeSimpleParallel(int x, int y, String filename) {
 		CensusData cData = parse(filename);
 		CensusGroup[] data = cData.data;
 
@@ -182,15 +177,11 @@ public class PopulationQuery {
 				usRectLine = console.nextLine().split(" ");
 				continue;
 			}
-			int west = wsen[0], south = wsen[1], east = wsen[2], north = wsen[3];
-
-			float dLong = (usRectangle.right - usRectangle.left) / x;
-			float dLat 	= (usRectangle.top - usRectangle.bottom) / y;
-			Rectangle qRect = new Rectangle(usRectangle.left + dLong * (west - 1),
-					usRectangle.left + dLong * east,
-					usRectangle.bottom + dLat * north,
-					usRectangle.bottom + dLat * (south - 1));
-			SimpleQuery sq = new SimpleQuery(data, 0, cData.data_size,qRect);
+			
+			//Create the query Rectangle
+			Rectangle queryRect = createQueryRect(x, y, wsen, usRectangle);
+			
+			SimpleQuery sq = new SimpleQuery(data, 0, cData.data_size,queryRect);
 			Integer queryPop = fjPool.invoke(sq);
 			float percentTotalPop = ((float) queryPop * 100) / totalUSPop;
 
@@ -208,7 +199,7 @@ public class PopulationQuery {
 	//x = x dimension of the grid
 	//y = y dimension of the grid
 	//filename = name of the file to parse data from
-	private static void executeVersionThree(int x, int y, String filename) {
+	private static void executeSmarterSequential(int x, int y, String filename) {
 		//Parse data
 		CensusData cData = parse(filename);
 		CensusGroup[] data = cData.data;
@@ -245,67 +236,19 @@ public class PopulationQuery {
 			grid[xPos][yPos] += data[i].population;
 		}
 		
-		//Modify grid so that it each element now holds the total for all postitions that are
-		//neither farther East nor farther South.
-		for (int j = y-1; j >= 0; j--) {
-			for (int i = 0; i < x; i++) {
-				//get the populations for the corners (i-1, j), (i, j+1), and (i-1, j+1)
-				int bottomLeft = (i == 0) ? 0 : grid[i-1][j];
-				int topRight   = (j == y - 1) ? 0 : grid[i][j+1]; 
-				int topLeft    = (i == 0 || j == y - 1) ? 0 : grid[i-1][j+1];
-				
-				//modify the population to grid[i][j]+bottomLeft+topRight-topLeft
-				grid[i][j] = grid[i][j] + bottomLeft + topRight - topLeft;
-			}
-		}
+		//Modify grid so that each element now holds the total for all positions that are
+		//neither farther East nor farther South.		
+		grid = modifyToNWSum(x, y, grid);
 		
-		Scanner console = new Scanner(System.in);
-		//Get the line for the query rectangle numbers 
-		System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
-		String[] usRectLine = console.nextLine().split(" ");
-		while (usRectLine.length == 4) {
-			//Process the line to get the query rectangle numbers. Try again if there's an error processing or
-			//validating the query
-			//wsen holds west, south, east, and north query values, in that order
-			int[] wsen = processQuery(usRectLine, x, y);
-			if (wsen == null) { //processing the query resulted in an exception - try again
-				usRectLine = console.nextLine().split(" ");
-				continue;
-			}
-			int west = wsen[0], south = wsen[1], east = wsen[2], north = wsen[3];
-
-			//Create the query Rectangle
-			Rectangle qRect = new Rectangle(minLon + dLong * (west - 1),
-					minLon + dLong * east,
-					minLat + dLat * north,
-					minLat + dLat * (south - 1));
-
-			//Find the total population within the query rectangle. Use a similar formula from before:
-			//bottomRight - aboveTopRight - leftBottomLeft + aboveAndLeftTopLeft
-			int bottomRight = grid[east-1][south-1];
-			int aboveTopRight = (north == y) ? 0 : grid[east-1][north];
-			int leftBottomLeft = (west == 1) ? 0 : grid[west-2][south-1];
-			int aboveAndLeftTopLeft = (north == y || west == 1) ? 0 : grid[west-2][north];
-			int queryPop = bottomRight - aboveTopRight - leftBottomLeft + aboveAndLeftTopLeft;
-
-			//% of totalUSPop query is
-			float percentTotalPop = ((float) queryPop * 100) / totalUSPop;
-
-			//Print the results
-			printResults(queryPop, percentTotalPop);
-			
-			//Prompt again
-			System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
-			usRectLine = console.nextLine().split(" ");
-		}
-		console.close();
+		//Execute the query
+		executeV3Through5Query(x, y, grid, totalUSPop);
 	}
 
 	//version 4, smarter and parallel
 	//x = x dimension of the grid
 	//y = y dimension of the grid
 	//filename = name of the file to parse data from
-	private static void executeVersionFour(int x, int y, String fileName){
+	private static void executeSmarterParallel(int x, int y, String fileName){
 		CensusData cData = parse(fileName);
 		CensusGroup[] data = cData.data;
 		ForkJoinPool fjPool = new ForkJoinPool();			
@@ -320,60 +263,19 @@ public class PopulationQuery {
 		
 		int[][] theGrid = gs.grid;
 		
-		//Modify grid so that it each element now holds the total for all postitions that are
-		//neither farther East nor farther South.
-		for (int j = y-1; j >= 0; j--) {
-			for (int i = 0; i < x; i++) {
-				//get the populations for the corners (i-1, j), (i, j+1), and (i-1, j+1)
-				int bottomLeft = (i == 0) ? 0 : theGrid[i-1][j];
-				int topRight   = (j == y - 1) ? 0 : theGrid[i][j+1]; 
-				int topLeft    = (i == 0 || j == y - 1) ? 0 : theGrid[i-1][j+1];
-				
-				//modify the population to grid[i][j]+bottomLeft+topRight-topLeft
-				theGrid[i][j] = theGrid[i][j] + bottomLeft + topRight - topLeft;
-			}
-		}
-		Scanner console = new Scanner(System.in);
-		//Get the line for the query rectangle numbers 
-		System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
-		String[] usRectLine = console.nextLine().split(" ");
-		while (usRectLine.length == 4) {
-			//Process the line to get the query rectangle numbers. Try again if there's an error processing or
-			//validating the query
-			//wsen holds west, south, east, and north query values, in that order
-			int[] wsen = processQuery(usRectLine, x, y);
-			if (wsen == null) { //processing the query resulted in an exception - try again
-				usRectLine = console.nextLine().split(" ");
-				continue;
-			}
-			int west = wsen[0], south = wsen[1], east = wsen[2], north = wsen[3];
-
-			//Find the total population within the query rectangle. Use a similar formula from before:
-			//bottomRight - aboveTopRight - leftBottomLeft + aboveAndLeftTopLeft
-			int bottomRight = theGrid[east-1][south-1];
-			int aboveTopRight = (north == y) ? 0 : theGrid[east-1][north];
-			int leftBottomLeft = (west == 1) ? 0 : theGrid[west-2][south-1];
-			int aboveAndLeftTopLeft = (north == y || west == 1) ? 0 : theGrid[west-2][north];
-			int queryPop = bottomRight - aboveTopRight - leftBottomLeft + aboveAndLeftTopLeft;
-
-			//% of totalUSPop query is
-			float percentTotalPop = ((float) queryPop * 100) / totalUSPop;
-
-			//Print the results
-			printResults(queryPop, percentTotalPop);
-			
-			//Prompt again
-			System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
-			usRectLine = console.nextLine().split(" ");
-		}
-		console.close();
+		//Modify grid so that each element now holds the total for all positions that are
+		//neither farther East nor farther South.		
+		theGrid = modifyToNWSum(x, y, theGrid);
+		
+		//Execute the query
+		executeV3Through5Query(x, y, theGrid, totalUSPop);
 	}
 	
 	//version 5, smarter and lock-based
 	//x = x dimension of the grid
 	//y = y dimension of the grid
 	//filename = name of the file to parse data from
-	private static void executeVersionFive(int x, int y, String filename) {
+	private static void executeSmarterLockBased(int x, int y, String filename) {
 		//Parse data
 		CensusData cData = parse(filename);
 		CensusGroup[] data = cData.data;
@@ -411,58 +313,40 @@ public class PopulationQuery {
 				e.printStackTrace();
 			}
 		}
-		//Modify grid so that it each element now holds the total for all postitions that are
-		//neither farther East nor farther South.
-		for (int j = y-1; j >= 0; j--) {
-			for (int i = 0; i < x; i++) {
-				//get the populations for the corners (i-1, j), (i, j+1), and (i-1, j+1)
-				int bottomLeft = (i == 0) ? 0 : theGrid[i-1][j];
-				int topRight   = (j == y - 1) ? 0 : theGrid[i][j+1]; 
-				int topLeft    = (i == 0 || j == y - 1) ? 0 : theGrid[i-1][j+1];
-				
-				//modify the population to grid[i][j]+bottomLeft+topRight-topLeft
-				theGrid[i][j] = theGrid[i][j] + bottomLeft + topRight - topLeft;
-			}
-		}
-		Scanner console = new Scanner(System.in);
-		//Get the line for the query rectangle numbers 
-		System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
-		String[] usRectLine = console.nextLine().split(" ");
-		while (usRectLine.length == 4) {
-			//Process the line to get the query rectangle numbers. Try again if there's an error processing or
-			//validating the query
-			//wsen holds west, south, east, and north query values, in that order
-			int[] wsen = processQuery(usRectLine, x, y);
-			if (wsen == null) { //processing the query resulted in an exception - try again
-				usRectLine = console.nextLine().split(" ");
-				continue;
-			}
-			int west = wsen[0], south = wsen[1], east = wsen[2], north = wsen[3];
-
-			//Find the total population within the query rectangle. Use a similar formula from before:
-			//bottomRight - aboveTopRight - leftBottomLeft + aboveAndLeftTopLeft
-			int bottomRight = theGrid[east-1][south-1];
-			int aboveTopRight = (north == y) ? 0 : theGrid[east-1][north];
-			int leftBottomLeft = (west == 1) ? 0 : theGrid[west-2][south-1];
-			int aboveAndLeftTopLeft = (north == y || west == 1) ? 0 : theGrid[west-2][north];
-			int queryPop = bottomRight - aboveTopRight - leftBottomLeft + aboveAndLeftTopLeft;
-
-			//% of totalUSPop query is
-			float percentTotalPop = ((float) queryPop * 100) / totalUSPop;
-
-			//Print the results
-			printResults(queryPop, percentTotalPop);
-			
-			//Prompt again
-			System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
-			usRectLine = console.nextLine().split(" ");
-		}
-		console.close();
+		
+		//Modify grid so that each element now holds the total for all positions that are
+		//neither farther East nor farther South.		
+		theGrid = modifyToNWSum(x, y, theGrid);
+		
+		//Execute the query
+		executeV3Through5Query(x, y, theGrid, totalUSPop);
 
 	}
 	
+	//Helper method that modifies the given grid so that each element holds the total for 
+	//all positions that are neither farther East nor farther South.
+	//x = x dimension of the grid
+	//y = y dimension of the grid
+	//grid = the grid to modify
+	private static int[][] modifyToNWSum(int x, int y, int[][] grid) {
+		for (int j = y-1; j >= 0; j--) {
+			for (int i = 0; i < x; i++) {
+				//get the populations for the corners (i-1, j), (i, j+1), and (i-1, j+1)
+				int bottomLeft = (i == 0) ? 0 : grid[i-1][j];
+				int topRight   = (j == y - 1) ? 0 : grid[i][j+1]; 
+				int topLeft    = (i == 0 || j == y - 1) ? 0 : grid[i-1][j+1];
+				
+				//modify the population to grid[i][j]+bottomLeft+topRight-topLeft
+				grid[i][j] = grid[i][j] + bottomLeft + topRight - topLeft;
+			}
+		}	
+		return grid;
+	}
+
 	//private helper method used to sequentially calculate the minimum and maximum longitudes and
 	//latitudes from a census file
+	//data = the array of CensusGroup data
+	//dataSize = the amount of valid CensusGroups in data
 	//returns: an array of floats representing the minimum longitude, minimum latitude, maximum 
 	//			longitude, maximum latitude, and the total US population, in that order
 	private static float[] sequentialGetMinMaxLatLonTotalPop(CensusGroup[] data, int dataSize) {
@@ -485,6 +369,67 @@ public class PopulationQuery {
 		}
 		
 		return new float[]{minLon, minLat, maxLon, maxLat, totalUSPop};
+	}
+
+	//private helper method that creates and returns a rectangle for the user's query
+	//x = x dimension of the grid
+	//y = y dimension of the grid
+	//wsen = west, south, east, and north values from the query, in that order
+	//usRectangle = a Rectangle of the entire US
+	private static Rectangle createQueryRect(int x, int y, int[] wsen, Rectangle usRectangle) {
+		int west = wsen[0], south = wsen[1], east = wsen[2], north = wsen[3];
+
+		float dLong = (usRectangle.right - usRectangle.left) / x;
+		float dLat 	= (usRectangle.top - usRectangle.bottom) / y;
+		Rectangle queryRect = new Rectangle(usRectangle.left + dLong * (west - 1),
+				usRectangle.left + dLong * east,
+				usRectangle.bottom + dLat * north,
+				usRectangle.bottom + dLat * (south - 1));
+		return queryRect;
+	}
+
+	//private helper method used to execute the query and print results for versions 
+	//3 through 5 since each of these versions' query process is identical
+	//x = x dimension of the grid
+	//y = y dimension of the grid
+	//grid = the grid of the US population
+	//totalUSPop = the total population of the US
+	private static void executeV3Through5Query(int x, int y, int[][] grid, int totalUSPop) {
+		Scanner console = new Scanner(System.in);
+		//Get the line for the query rectangle numbers 
+		System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
+		String[] usRectLine = console.nextLine().split(" ");
+		while (usRectLine.length == 4) {
+			//Process the line to get the query rectangle numbers. Try again if there's an error processing or
+			//validating the query
+			//wsen holds west, south, east, and north query values, in that order
+			int[] wsen = processQuery(usRectLine, x, y);
+			if (wsen == null) { //processing the query resulted in an exception - try again
+				usRectLine = console.nextLine().split(" ");
+				continue;
+			}
+			int west = wsen[0], south = wsen[1], east = wsen[2], north = wsen[3];
+
+			//Find the total population within the query rectangle. Use a similar formula from before:
+			//bottomRight - aboveTopRight - leftBottomLeft + aboveAndLeftTopLeft
+			int bottomRight = grid[east-1][south-1];
+			int aboveTopRight = (north == y) ? 0 : grid[east-1][north];
+			int leftBottomLeft = (west == 1) ? 0 : grid[west-2][south-1];
+			int aboveAndLeftTopLeft = (north == y || west == 1) ? 0 : grid[west-2][north];
+			int queryPop = bottomRight - aboveTopRight - leftBottomLeft + aboveAndLeftTopLeft;
+
+			//% of totalUSPop query is
+			float percentTotalPop = ((float) queryPop * 100) / totalUSPop;
+
+			//Print the results
+			printResults(queryPop, percentTotalPop);
+			
+			//Prompt again
+			System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
+			usRectLine = console.nextLine().split(" ");
+		}
+		
+		console.close();
 	}
 	
 	//private helper method used to process and validate the query given by the user.
