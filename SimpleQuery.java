@@ -1,46 +1,57 @@
+/**@author Nickolas Evans & Austin Briggs
+ * 
+ * */
 import java.util.concurrent.RecursiveTask;
 
 
-public class SimpleQuery extends RecursiveTask<Pair<Integer,Integer>>{
-	private CensusGroup[] array;
-	private int low;
-	private int high;
-	private Rectangle rect;
-	private static final int SEQUENTIAL_CUTOFF = 100;
+public class SimpleQuery extends RecursiveTask<Integer>{
+	private CensusGroup[] array;						//The CensusGroup[] that will be queried by 
+	private int low;									// The starting index within the CensusGroup[] array
+	private int high;									// The ending value of the query
+	private Rectangle queryRect;						// The rectangle that the census groups will be determined if they are contained in.
+	private static final int SEQUENTIAL_CUTOFF = 100;	// The max amount of elements needed before solved sequentially. 
 	
+	/** Returns an Integer which represents the population in the Queried Rectangle
+	 * @return Returns an Integer that is the population within the queried rectangle.
+	 * */
 	@Override
-	protected Pair<Integer, Integer> compute() {
+	protected Integer compute() {
 		if(high - low <= SEQUENTIAL_CUTOFF){
 			Integer queryPop = 0;
 			Integer totalPop = 0;
 			int elements = high - low;
 			for(int i = 0; i < elements; i++){
 				CensusGroup current = array[low+i];
-				if (current.latitude >= rect.bottom && current.latitude <= rect.top && current.longitude >= rect.left && current.longitude <= rect.right) {
+				if (current.latitude >= queryRect.bottom && current.latitude <= queryRect.top && current.longitude >= queryRect.left && current.longitude <= queryRect.right) {
 					queryPop += current.population;
 				}else{
 					//System.out.println(low+i);
 				}
 				totalPop += current.population;
 			}
-			return new Pair<Integer,Integer>(queryPop,totalPop);
+			return queryPop;
 		}
-		// TODO Auto-generated method stub
-		SimpleQuery left = new SimpleQuery(array, low, (high+low)/2, rect);
-		SimpleQuery right = new SimpleQuery(array, (low+high)/2, high, rect);
+		
+		SimpleQuery left = new SimpleQuery(array, low, (high+low)/2, queryRect);
+		SimpleQuery right = new SimpleQuery(array, (low+high)/2, high, queryRect);
 		left.fork();
-		Pair<Integer, Integer> rightResult = right.compute();
-		Pair<Integer, Integer> leftResult = left.join();
-		Integer resultA = rightResult.getElementA()+leftResult.getElementA();
-		Integer resultB = rightResult.getElementB()+leftResult.getElementB();
-		return new Pair<Integer,Integer>(resultA, resultB); //Need to split and create a new pair.
+		Integer rightResult = right.compute();
+		Integer leftResult = left.join();
+		Integer result = rightResult+leftResult;
+		return result; //Need to split and create a new pair.
 	}
 	
+	/** Constructor initializes SimpleQuery
+	 * @param array the CensusGroup[] that will be queried by.
+	 * @param low the starting index within the CensusGroup[] array.
+	 * @param high the ending value of the query.
+	 * @param rect the rectangle that the census groups will be determined if they are contained in.
+	 * */
 	public SimpleQuery(CensusGroup[] array, int low, int high, Rectangle rect){
 		this.array = array;
 		this.low = low;
 		this.high = high;
-		this.rect = rect;
+		this.queryRect = rect;
 	}
 
 }

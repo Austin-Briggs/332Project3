@@ -166,8 +166,9 @@ public class PopulationQuery {
 		//Makes the United States Rectangle
 		ForkJoinPool fjPool = new ForkJoinPool();
 		ParallelSquare ps = new ParallelSquare(data,0,cData.data_size);
-		Rectangle usRectangle = fjPool.invoke(ps);
-
+		Pair<Rectangle,Integer> usPair = fjPool.invoke(ps);
+		int totalUSPop = usPair.getElementB();
+		Rectangle usRectangle = usPair.getElementA();
 		Scanner console = new Scanner(System.in);
 		//Get the line for the query rectangle numbers 
 		System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
@@ -190,9 +191,7 @@ public class PopulationQuery {
 					usRectangle.bottom + dLat * north,
 					usRectangle.bottom + dLat * (south - 1));
 			SimpleQuery sq = new SimpleQuery(data, 0, cData.data_size,qRect);
-			Pair<Integer,Integer> qp = fjPool.invoke(sq);
-			Integer queryPop = qp.getElementA();
-			Integer totalUSPop = qp.getElementB();
+			Integer queryPop = fjPool.invoke(sq);
 			float percentTotalPop = ((float) queryPop * 100) / totalUSPop;
 
 			//Print the results
@@ -311,7 +310,9 @@ public class PopulationQuery {
 		CensusGroup[] data = cData.data;
 		ForkJoinPool fjPool = new ForkJoinPool();			
 		ParallelSquare ps = new ParallelSquare(data,0,cData.data_size);
-		Rectangle usRectangle = fjPool.invoke(ps);
+		Pair<Rectangle,Integer> usPair = fjPool.invoke(ps);
+		int totalUSPop = usPair.getElementB();
+		Rectangle usRectangle = usPair.getElementA();
 		
 		OverAllInput oai = new OverAllInput(x,y,usRectangle, data);
 		Version4Part1 v4p1 = new Version4Part1(oai, 0,cData.data_size);
@@ -332,7 +333,6 @@ public class PopulationQuery {
 				theGrid[i][j] = theGrid[i][j] + bottomLeft + topRight - topLeft;
 			}
 		}
-		int totalUSPop = theGrid[x-1][0];
 		Scanner console = new Scanner(System.in);
 		//Get the line for the query rectangle numbers 
 		System.out.println("Please give west, south, east, north coordinates of your query rectangle:");
@@ -381,7 +381,9 @@ public class PopulationQuery {
 		//Makes the United States Rectangle
 		ForkJoinPool fjPool = new ForkJoinPool();
 		ParallelSquare ps = new ParallelSquare(data,0,cData.data_size);
-		Rectangle usRectangle = fjPool.invoke(ps);
+		Pair<Rectangle,Integer> usPair = fjPool.invoke(ps);
+		int totalUSPop = usPair.getElementB();
+		Rectangle usRectangle = usPair.getElementA();
 		
 		//Create x*y grid where each element is the total population of the (xi, yi) grid position
 		int[][] theGrid = new int[x][y];
@@ -422,7 +424,6 @@ public class PopulationQuery {
 				theGrid[i][j] = theGrid[i][j] + bottomLeft + topRight - topLeft;
 			}
 		}
-		int totalUSPop = theGrid[x-1][0];
 		Scanner console = new Scanner(System.in);
 		//Get the line for the query rectangle numbers 
 		System.out.println("Please give west, south, east, north coordinates of your query rectangle:");

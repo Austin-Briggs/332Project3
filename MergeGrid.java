@@ -9,7 +9,7 @@ public class MergeGrid extends RecursiveAction{
 	private GridSection right;
 	private GridCoordinates focus;
 	private GridSection masterGrid;
-	public static final int SEQUENTIAL_CUTOFF = 100;
+	public static final int SEQUENTIAL_CUTOFF = 5000;
 	
 	
 	/** Constructs a MergeGrid
