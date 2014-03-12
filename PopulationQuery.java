@@ -68,17 +68,19 @@ public class PopulationQuery {
 		String filename = args[0];
 		int x = Integer.parseInt(args[1]);
 		int y = Integer.parseInt(args[2]);
+		//Parse data
+		CensusData cData = parse(filename);
 		String version = args[3];
 		if (version.equals("-v1")) { 		//version 1, simple and sequential
-			executeSimpleSequential(x, y, filename);
+			executeSimpleSequential(x, y, cData);
 		} else if (version.equals("-v2")) { //version 2, simple and parallel
-			executeSimpleParallel(x, y, filename);
+			executeSimpleParallel(x, y, cData);
 		} else if (version.equals("-v3")) { //version 3, smarter and sequential
-			executeSmarterSequential(x, y, filename);
+			executeSmarterSequential(x, y, cData);
 		} else if (version.equals("-v4")) { //version 4, smarter and parallel
-			executeSmarterParallel(x,y,filename);
+			executeSmarterParallel(x,y,cData);
 		} else if (version.equals("-v5")) { //version 5, smarter and lock-based
-			executeSmarterLockBased(x, y, filename);
+			executeSmarterLockBased(x, y, cData);
 		} else { //incorrect input
 			System.err.println("Incorrect version format. Must use -v1, -v2, -v3, -v4, or -v5.");
 			System.exit(1);
@@ -89,9 +91,7 @@ public class PopulationQuery {
 	//x = x dimension of the grid
 	//y = y dimension of the grid
 	//filename = name of the file to parse data from
-	private static void executeSimpleSequential(int x, int y, String filename) {
-
-		CensusData cData = parse(filename);
+	private static void executeSimpleSequential(int x, int y, CensusData cData) {
 		CensusGroup[] data = cData.data;
 		
 		//Get the minimum and maximum longitudes and latitudes, as well as the total US population, sequentially
@@ -154,8 +154,7 @@ public class PopulationQuery {
 	//x = x dimension of the grid
 	//y = y dimension of the grid
 	//filename = name of the file to parse data from
-	private static void executeSimpleParallel(int x, int y, String filename) {
-		CensusData cData = parse(filename);
+	private static void executeSimpleParallel(int x, int y, CensusData cData) {
 		CensusGroup[] data = cData.data;
 
 		//Makes the United States Rectangle
@@ -199,9 +198,7 @@ public class PopulationQuery {
 	//x = x dimension of the grid
 	//y = y dimension of the grid
 	//filename = name of the file to parse data from
-	private static void executeSmarterSequential(int x, int y, String filename) {
-		//Parse data
-		CensusData cData = parse(filename);
+	private static void executeSmarterSequential(int x, int y, CensusData cData) {
 		CensusGroup[] data = cData.data;
 		
 		//Get the minimum and maximum longitudes and latitudes, as well as the total US population, sequentially
@@ -248,8 +245,7 @@ public class PopulationQuery {
 	//x = x dimension of the grid
 	//y = y dimension of the grid
 	//filename = name of the file to parse data from
-	private static void executeSmarterParallel(int x, int y, String fileName){
-		CensusData cData = parse(fileName);
+	private static void executeSmarterParallel(int x, int y, CensusData cData){
 		CensusGroup[] data = cData.data;
 		ForkJoinPool fjPool = new ForkJoinPool();			
 		ParallelSquare ps = new ParallelSquare(data,0,cData.data_size);
@@ -275,9 +271,7 @@ public class PopulationQuery {
 	//x = x dimension of the grid
 	//y = y dimension of the grid
 	//filename = name of the file to parse data from
-	private static void executeSmarterLockBased(int x, int y, String filename) {
-		//Parse data
-		CensusData cData = parse(filename);
+	private static void executeSmarterLockBased(int x, int y, CensusData cData) {
 		CensusGroup[] data = cData.data;
 
 		//Makes the United States Rectangle
@@ -300,6 +294,7 @@ public class PopulationQuery {
 			}
 		}
 		OverAllInput oai = new OverAllInput(x,y,usRectangle,data);
+		//Creates threads
 		int threadAmount = 4;
 		PopulateGridThread[] pgt = new PopulateGridThread[threadAmount];
 		for(int i = 0; i < threadAmount; i++){
