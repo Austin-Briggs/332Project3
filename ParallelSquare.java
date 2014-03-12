@@ -4,18 +4,19 @@
 import java.util.concurrent.RecursiveTask;
 
 /** ParallelSquare
- * 	Calculates the boundary of the country and its total population. 
- * 
+ * 	Recursive Task that calculates the boundary of the country and its total population. 
  * */
 public class ParallelSquare extends RecursiveTask<Pair<Rectangle, Integer> >{
-	private CensusGroup[] array;						//The CensusGroup[] that will be queried by 
+	private CensusGroup[] array;						//The CensusGroup[] that will be queried by ParallelSquare
 	private int low;									// The starting index within the CensusGroup[] array
 	private int high;									// The ending value of the query
-	public static final int SEQUENTIAL_CUTOFF = 100;	// The max amount of elements needed before solved sequentially. 
+	private static final int SEQUENTIAL_CUTOFF = 100;	// The max amount of elements needed before solved sequentially. 
 	
 	
-	/** 
-	 * 
+	/** Initializes ParallelSquare
+	 * @param array //The CensusGroup[] that will be queried by ParallelSquare
+	 * @param low // The starting index within the CensusGroup[] array
+	 * @param high // The ending value of the query
 	 * */
 	public ParallelSquare(CensusGroup[] array, int low, int high){
 		this.low = low;

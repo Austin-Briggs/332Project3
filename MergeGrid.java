@@ -1,15 +1,17 @@
-/**@author Nickolas Evans & Austin Briggs
- * 
- * */
+
 import java.util.concurrent.RecursiveAction;
 
-
+/**@author Nickolas Evans & Austin Briggs
+ * 
+ * MergeGrid
+ * Recursive action that computes the population of two grids combined
+ * */
 public class MergeGrid extends RecursiveAction{
-	private GridSection left;
-	private GridSection right;
-	private GridCoordinates focus;
-	private GridSection masterGrid;
-	public static final int SEQUENTIAL_CUTOFF = 5000;
+	private GridSection left;								// left is the "left" grid that is being merged by mergeGrid
+	private GridSection right;								// right is the "right" grid that is being merged by mergeGrid
+	private GridCoordinates focus;							// Is the area of the masterGrid section that mergeGrid is focusing on merging.
+	private GridSection masterGrid;							// masterGrid is the gridSection that is being populated by mergeGrid
+	public static final int SEQUENTIAL_CUTOFF = 5000;		// The max amount of elements needed before solved sequentially.
 	
 	
 	/** Constructs a MergeGrid
@@ -26,7 +28,8 @@ public class MergeGrid extends RecursiveAction{
 		this.focus = focus;
 	}
 	
-	
+	/** Computes if the area is to large splits into quadrants otherwise focuses on quadrant given and populates masterGrid.
+	 * */
 	public void compute(){
 		if((focus.maxX-focus.minX) * (focus.maxY-focus.minY) <= SEQUENTIAL_CUTOFF ){
 			for(int i = focus.minX; i<=focus.maxX; i++){
@@ -36,59 +39,27 @@ public class MergeGrid extends RecursiveAction{
 			}
 			return;
 		}
-		/*if((int)focus.maxY-(int)focus.minY == 1){
-			// focus is a straight line across a horizontal line
-			// split in half
-			int right = focus.maxX;
-			int left = focus.minX;
-			int middle = (right+left)/2;
-			GridCoordinates leftRect = new GridCoordinates(left,middle,focus.maxY,focus.minY);
-			GridCoordinates rightRect = new GridCoordinates(middle,right,focus.maxY,focus.minY);
-			MergeGrid leftMerge = new MergeGrid(this.left,this.right,leftRect,grid);
-			MergeGrid rightMerge = new MergeGrid(this.left,this.right,rightRect,grid);
-			leftMerge.fork();
-			rightMerge.compute();
-			leftMerge.join();
-		}else if((int)focus.maxX-(int)focus.minX == 1){
-			// focus is a straight line across a vertical line
-			// split in half
-			int top = focus.maxY;
-			int bottom = focus.minY;
-			int middle = (top+bottom)/2;
-			GridCoordinates topRect = new GridCoordinates(focus.minX,focus.maxX,top,middle);
-			GridCoordinates bottomRect = new GridCoordinates(focus.minX,focus.maxX,middle,bottom);
-			MergeGrid topMerge = new MergeGrid(this.left,this.right,topRect,grid);
-			MergeGrid bottomMerge = new MergeGrid(this.left,this.right,bottomRect,grid);
-			topMerge.fork();
-			bottomMerge.compute();
-			topMerge.join();
-		}else{ */
-			// Can split into fourths
-			int maxY = focus.maxY;
-			int minumumY = focus.minY;
-			int maxX = focus.maxX;
-			int minumumX = focus.minX;
-			int yMidPoint = (maxY+minumumY)/2;
-			int xMidPoint = (minumumX+maxX)/2;
-			GridCoordinates UpperLeftQuadrant = new GridCoordinates(minumumX,xMidPoint,maxY,yMidPoint);
-			GridCoordinates UpperRightQuadrant = new GridCoordinates(xMidPoint, maxX, maxY, yMidPoint);
-			GridCoordinates LowerLeftQuadrant = new GridCoordinates(minumumX, xMidPoint, yMidPoint, minumumY);
-			GridCoordinates LowerRightQuadrant = new GridCoordinates(xMidPoint, maxX, yMidPoint, minumumY);
-			//System.out.println("ULQ"+UpperLeftQuadrant);
-			//System.out.println("URQ"+UpperRightQuadrant);
-			//System.out.println("LLQ"+LowerLeftQuadrant);
-			//System.out.println("LRQ"+LowerRightQuadrant);
-			MergeGrid ULQMerge = new MergeGrid(this.left,this.right, UpperLeftQuadrant ,masterGrid);
-			MergeGrid URQMerge = new MergeGrid(this.left,this.right, UpperRightQuadrant,masterGrid);
-			MergeGrid LLQMerge = new MergeGrid(this.left,this.right, LowerLeftQuadrant ,masterGrid);
-			MergeGrid LRQMerge = new MergeGrid(this.left,this.right, LowerRightQuadrant,masterGrid);
-			ULQMerge.fork();
-			URQMerge.fork();
-			LLQMerge.fork();
-			LRQMerge.compute();
-			ULQMerge.join();
-			URQMerge.join();
-			LLQMerge.join();
-		//}
+		// Can split into fourths
+		int maxY = focus.maxY;
+		int minumumY = focus.minY;
+		int maxX = focus.maxX;
+		int minumumX = focus.minX;
+		int yMidPoint = (maxY+minumumY)/2;
+		int xMidPoint = (minumumX+maxX)/2;
+		GridCoordinates UpperLeftQuadrant = new GridCoordinates(minumumX,xMidPoint,maxY,yMidPoint);
+		GridCoordinates UpperRightQuadrant = new GridCoordinates(xMidPoint, maxX, maxY, yMidPoint);
+		GridCoordinates LowerLeftQuadrant = new GridCoordinates(minumumX, xMidPoint, yMidPoint, minumumY);
+		GridCoordinates LowerRightQuadrant = new GridCoordinates(xMidPoint, maxX, yMidPoint, minumumY);
+		MergeGrid ULQMerge = new MergeGrid(this.left,this.right, UpperLeftQuadrant ,masterGrid);
+		MergeGrid URQMerge = new MergeGrid(this.left,this.right, UpperRightQuadrant,masterGrid);
+		MergeGrid LLQMerge = new MergeGrid(this.left,this.right, LowerLeftQuadrant ,masterGrid);
+		MergeGrid LRQMerge = new MergeGrid(this.left,this.right, LowerRightQuadrant,masterGrid);
+		ULQMerge.fork();
+		URQMerge.fork();
+		LLQMerge.fork();
+		LRQMerge.compute();
+		ULQMerge.join();
+		URQMerge.join();
+		LLQMerge.join();
 	}
 }

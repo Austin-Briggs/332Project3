@@ -1,11 +1,12 @@
 /**@author Nickolas Evans & Austin Briggs
- * 
  * */
 import java.util.concurrent.RecursiveTask;
 
-
+/** SimpleQuery
+ * 	Recursive task that calculates population that is contained within the provided boundary.
+ * */
 public class SimpleQuery extends RecursiveTask<Integer>{
-	private CensusGroup[] array;						//The CensusGroup[] that will be queried by 
+	private CensusGroup[] array;						//The CensusGroup[] that will be queried by SimpleQuery
 	private int low;									// The starting index within the CensusGroup[] array
 	private int high;									// The ending value of the query
 	private Rectangle queryRect;						// The rectangle that the census groups will be determined if they are contained in.
@@ -24,21 +25,19 @@ public class SimpleQuery extends RecursiveTask<Integer>{
 				CensusGroup current = array[low+i];
 				if (current.latitude >= queryRect.bottom && current.latitude <= queryRect.top && current.longitude >= queryRect.left && current.longitude <= queryRect.right) {
 					queryPop += current.population;
-				}else{
-					//System.out.println(low+i);
 				}
 				totalPop += current.population;
 			}
 			return queryPop;
 		}
-		
+		//Need to split and create a new pair.
 		SimpleQuery left = new SimpleQuery(array, low, (high+low)/2, queryRect);
 		SimpleQuery right = new SimpleQuery(array, (low+high)/2, high, queryRect);
 		left.fork();
 		Integer rightResult = right.compute();
 		Integer leftResult = left.join();
 		Integer result = rightResult+leftResult;
-		return result; //Need to split and create a new pair.
+		return result; 
 	}
 	
 	/** Constructor initializes SimpleQuery

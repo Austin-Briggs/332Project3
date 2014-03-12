@@ -1,7 +1,6 @@
-/**@author Nickolas Evans & Austin Briggs
- * 
- * */
+
 // A class to represent a GridCoordinates
+// Clearly based off of Rectangle
 // You do not have to use this, but it's quite convenient
 public class GridCoordinates {
         // invariant: right >= left and top >= bottom (i.e., numbers get bigger as you move up/right)
