@@ -1,10 +1,13 @@
-/**@author Nickolas Evans & Austin Briggs
- * */
+/**
+ * Austin Briggs and Nick Evans
+ * CSE 332 AB
+ * Project 3B
+ * 
+ * SimpleQuery is a recursive task that calculates population that is contained 
+ * within the provided boundary.
+ */
 import java.util.concurrent.RecursiveTask;
 
-/** SimpleQuery
- * 	Recursive task that calculates population that is contained within the provided boundary.
- * */
 public class SimpleQuery extends RecursiveTask<Integer>{
 	private CensusGroup[] array;						//The CensusGroup[] that will be queried by SimpleQuery
 	private int low;									// The starting index within the CensusGroup[] array

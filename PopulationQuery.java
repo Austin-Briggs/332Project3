@@ -1,4 +1,20 @@
-
+/**
+ * Austin Briggs and Nick Evans
+ * CSE 332 AB
+ * Project 3B
+ * 
+ * PopulationQuery is our main class that runs all the different versions of our 
+ * Where Are the People? project. It takes 4 command line arguments (file name, the x
+ * number of columns in the grid query, the number of rows in the grid query, and the
+ * version number to run).
+ * 
+ * Our versions are:
+ * -v1 = simple and sequential
+ * -v2 = simple and parallel
+ * -v3 = smarter and sequential
+ * -v4 = smarter and parallel
+ * -v5 = smarter and lock-based
+ */
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -247,14 +263,18 @@ public class PopulationQuery {
 	//filename = name of the file to parse data from
 	private static void executeSmarterParallel(int x, int y, CensusData cData){
 		CensusGroup[] data = cData.data;
+		
+		//Get US Rectangle and total population
 		ForkJoinPool fjPool = new ForkJoinPool();			
 		ParallelSquare ps = new ParallelSquare(data,0,cData.data_size);
 		Pair<Rectangle,Integer> usPair = fjPool.invoke(ps);
+		
 		int totalUSPop = usPair.getElementB();
 		Rectangle usRectangle = usPair.getElementA();
 		
+		//Consolidate all input data
 		OverAllInput oai = new OverAllInput(x,y,usRectangle, data);
-		Version4Part1 v4p1 = new Version4Part1(oai, 0,cData.data_size);
+		ParallelGridSection v4p1 = new ParallelGridSection(oai, 0,cData.data_size);
 		GridSection gs = fjPool.invoke(v4p1);
 		
 		int[][] theGrid = gs.grid;

@@ -1,4 +1,7 @@
-/**@author Nickolas Evans & Austin Briggs
+/**
+ * Austin Briggs and Nick Evans
+ * CSE 332 AB
+ * Project 3B
  * 
  * GridSection represents a grid and the area it occupies in the grid described in coordinates.
  * */

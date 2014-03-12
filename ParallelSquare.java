@@ -1,11 +1,13 @@
-/**@author Nickolas Evans & Austin Briggs
+/**
+ * Austin Briggs and Nick Evans
+ * CSE 332 AB
+ * Project 3B
  * 
- * */
+ * ParallelSquare is a Recursive Task that calculates the boundary of the country
+ * and its total population.
+ */
 import java.util.concurrent.RecursiveTask;
 
-/** ParallelSquare
- * 	Recursive Task that calculates the boundary of the country and its total population. 
- * */
 public class ParallelSquare extends RecursiveTask<Pair<Rectangle, Integer> >{
 	private CensusGroup[] array;						//The CensusGroup[] that will be queried by ParallelSquare
 	private int low;									// The starting index within the CensusGroup[] array

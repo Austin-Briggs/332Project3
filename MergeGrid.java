@@ -1,11 +1,12 @@
-
+/**
+ * Austin Briggs and Nick Evans
+ * CSE 332 AB
+ * Project 3B
+ * 
+ * MergeGrid is a recursive action that computes the population of two grids combined
+ */
 import java.util.concurrent.RecursiveAction;
 
-/**@author Nickolas Evans & Austin Briggs
- * 
- * MergeGrid
- * Recursive action that computes the population of two grids combined
- * */
 public class MergeGrid extends RecursiveAction{
 	private GridSection left;								// left is the "left" grid that is being merged by mergeGrid
 	private GridSection right;								// right is the "right" grid that is being merged by mergeGrid

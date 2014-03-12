@@ -1,12 +1,26 @@
-
+/**
+ * Austin Briggs and Nick Evans
+ * CSE 332 AB
+ * Project 3B
+ * 
+ * PopulateGridThread allows us to populate our grid of the US in parallel.
+ */
 public class PopulateGridThread extends java.lang.Thread {
-	private int low;
-	private int high;
-	private int[][] grid;
-	private Lock[][] locks;
-	private OverAllInput oai;
+	private int low;			//the lower bound of grid to populate
+	private int high;			//the upper bound of grid to populate
+	private OverAllInput oai;	//the overall input from the user - see constructor for more info
+	private int[][] grid;		//the grid of the US to populate
+	private Lock[][] locks;		//used to determine if elements of grid are locked
 	
-	
+	/**
+	 * Constructor. 
+	 * @param low the lower bound of grid to populate
+	 * @param high the upper bound of grid to populate
+	 * @param oai the overall input from the user (x/y dimensions of the grid, census data, 
+	 * 				Rectangle of the US, and dLat/dLong values 
+	 * @param grid the grid of the US to populate
+	 * @param locks used to determine if elements of grid are locked
+	 */
 	public PopulateGridThread(int low, int high, OverAllInput oai,int[][] grid, Lock[][] locks) {
 		this.low = low;
 		this.high = high;
@@ -15,11 +29,14 @@ public class PopulateGridThread extends java.lang.Thread {
 		this.oai = oai;
 	}
 	
-	
+	/**
+	 * run populates grid. It locks whatever element it is currently working on so that no
+	 * other thread will interfere and cause a race condition.
+	 */
 	public void run() {
 		for(int i = low; i < high; i++){
 			// Get coordinates of element in CG.
-			Pair<Integer,Integer> coordinates = getCensusCoordinates(oai.census[i]);
+			Pair<Integer,Integer> coordinates = getGridCoordinates(oai.census[i]);
 			// Then acquire lock at that grid location
 			locks[coordinates.getElementA()][coordinates.getElementB()].lock();
 			// Add population at coordinates
@@ -29,7 +46,12 @@ public class PopulateGridThread extends java.lang.Thread {
 		}
 	}
 	
-	public Pair<Integer,Integer> getCensusCoordinates(CensusGroup cen){
+	/**
+	 * getGridCoordinates returns the grid coordinates of a given CensusGroup
+	 * @param cen the CensusGroup to find the grid coordinates of
+	 * @return a Pair<x, y> of the x and y coordinates
+	 */
+	public Pair<Integer,Integer> getGridCoordinates(CensusGroup cen){
 		float lat = cen.latitude;
 		float lon = cen.longitude;
 		//if the latitude or longitude lies on the northernmost or easternmost border set the

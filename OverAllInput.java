@@ -1,9 +1,11 @@
-/**@author Nickolas Evans & Austin Briggs
+/**
+ * Austin Briggs and Nick Evans
+ * CSE 332 AB
+ * Project 3B
  * 
- * OverAllInput
- * Is a holder class that contains relevant data for calculations that doesn't change with queries or parallelism
- * 
- * */
+ * OverAllInput is a holder class that contains relevant data for calculations that 
+ * don't change with queries or parallelism
+ */
 public class OverAllInput {
 	public int gridX;				// The width of the grid ie max x coordinate
 	public int gridY;				// The height of the grid ie max y coordinate

@@ -1,7 +1,10 @@
-
-// A class to represent a GridCoordinates
-// Clearly based off of Rectangle
-// You do not have to use this, but it's quite convenient
+/**
+ * Austin Briggs and Nick Evans
+ * CSE 332 AB
+ * Project 3B
+ * 
+ * GridCoordinates is a grid coordinates version of Rectangle
+ */
 public class GridCoordinates {
         // invariant: right >= left and top >= bottom (i.e., numbers get bigger as you move up/right)
         // note in our census data longitude "West" is a negative number which nicely matches bigger-to-the-right
