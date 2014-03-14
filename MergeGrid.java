@@ -40,6 +40,7 @@ public class MergeGrid extends RecursiveAction{
 			}
 			return;
 		}
+		
 		// Can split into fourths
 		int maxY = focus.maxY;
 		int minumumY = focus.minY;
@@ -47,14 +48,20 @@ public class MergeGrid extends RecursiveAction{
 		int minumumX = focus.minX;
 		int yMidPoint = (maxY+minumumY)/2;
 		int xMidPoint = (minumumX+maxX)/2;
+		
+		//Four quadrants
 		GridCoordinates UpperLeftQuadrant = new GridCoordinates(minumumX,xMidPoint,maxY,yMidPoint);
 		GridCoordinates UpperRightQuadrant = new GridCoordinates(xMidPoint, maxX, maxY, yMidPoint);
 		GridCoordinates LowerLeftQuadrant = new GridCoordinates(minumumX, xMidPoint, yMidPoint, minumumY);
 		GridCoordinates LowerRightQuadrant = new GridCoordinates(xMidPoint, maxX, yMidPoint, minumumY);
+		
+		//Merge quadrants
 		MergeGrid ULQMerge = new MergeGrid(this.left,this.right, UpperLeftQuadrant ,masterGrid);
 		MergeGrid URQMerge = new MergeGrid(this.left,this.right, UpperRightQuadrant,masterGrid);
 		MergeGrid LLQMerge = new MergeGrid(this.left,this.right, LowerLeftQuadrant ,masterGrid);
 		MergeGrid LRQMerge = new MergeGrid(this.left,this.right, LowerRightQuadrant,masterGrid);
+		
+		//Parallel operations
 		ULQMerge.fork();
 		URQMerge.fork();
 		LLQMerge.fork();
